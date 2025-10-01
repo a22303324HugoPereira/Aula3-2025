@@ -5,7 +5,7 @@
       <paths name="Remote Host (ef4abcf2-c0b7-46d9-9084-64dcfc9f764a)">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/tmp.ahVqZoKCF6/Aula3-2025" local="$PROJECT_DIR$" />
+            <mapping deploy="Aula3-2025" local="$PROJECT_DIR$" />
           </mappings>
           <excludedPaths>
             <excludedPath local="true" path="$PROJECT_DIR$/scheduler_examples/cmake-build-debug" />
