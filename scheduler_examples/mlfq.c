@@ -1,12 +1,27 @@
-#define LEVELS 3
-#define QUANTUM_MS 500
+#include "mlfq.h"
 
-void mlfq_scheduler(uint32_t current_time_ms, queue_t *rq[LEVELS], pcb_t **cpu_task) {
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "msg.h"
+#include <unistd.h>
+
+#define LEVELS 3
+#define QUANTUM_MS_LEVEL {20, 40, 80}
+
+void mlfq_scheduler(uint32_t current_time_ms, queue_t *queues[LEVELS], pcb_t **cpu_task) {
+    static int quantums[LEVELS] = QUANTUM_MS_LEVEL;
+
     if (*cpu_task) {
         (*cpu_task)->ellapsed_time_ms += TICKS_MS;
-        (*cpu_task)->quantum_left -= TICKS_MS;
 
-        if ((*cpu_task)->ellapsed_time_ms >= (*cpu_task)->time_ms) {
+        int level = 0; // Se não temos priority, assumir nível 0
+        if ((*cpu_task)->ellapsed_time_ms >= quantums[level]) {
+            int next_level = level + 1;
+            if (next_level >= LEVELS) next_level = LEVELS - 1;
+            enqueue_pcb(queues[next_level], *cpu_task);
+            *cpu_task = NULL;
+        } else if ((*cpu_task)->ellapsed_time_ms >= (*cpu_task)->time_ms) {
             msg_t msg = {
                 .pid = (*cpu_task)->pid,
                 .request = PROCESS_REQUEST_DONE,
@@ -16,21 +31,12 @@ void mlfq_scheduler(uint32_t current_time_ms, queue_t *rq[LEVELS], pcb_t **cpu_t
             free(*cpu_task);
             *cpu_task = NULL;
         }
-        else if ((*cpu_task)->quantum_left <= 0) {
-            int lvl = (*cpu_task)->priority;
-            if (lvl < LEVELS-1) lvl++;
-            (*cpu_task)->priority = lvl;
-            (*cpu_task)->quantum_left = QUANTUM_MS;
-            enqueue_pcb(&rq[lvl], *cpu_task);
-            *cpu_task = NULL;
-        }
     }
 
     if (*cpu_task == NULL) {
-        for (int i=0; i<LEVELS; i++) {
-            *cpu_task = dequeue_pcb(&rq[i]);
-            if (*cpu_task) {
-                (*cpu_task)->quantum_left = QUANTUM_MS;
+        for (int i = 0; i < LEVELS; i++) {
+            if (queues[i]->head) {
+                *cpu_task = dequeue_pcb(queues[i]);
                 break;
             }
         }

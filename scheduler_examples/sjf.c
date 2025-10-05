@@ -1,3 +1,11 @@
+#include "sjf.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "msg.h"
+#include <unistd.h>
+
 void sjf_scheduler(uint32_t current_time_ms, queue_t *rq, pcb_t **cpu_task) {
     if (*cpu_task) {
         (*cpu_task)->ellapsed_time_ms += TICKS_MS;
@@ -13,23 +21,30 @@ void sjf_scheduler(uint32_t current_time_ms, queue_t *rq, pcb_t **cpu_task) {
         }
     }
 
-    if (*cpu_task == NULL) {
-        pcb_t *shortest = NULL, *prev = NULL, *it = rq->head, *it_prev = NULL;
-        while (it) {
-            if (!shortest || it->time_ms < shortest->time_ms) {
-                shortest = it;
-                prev = it_prev;
+    if (*cpu_task == NULL && rq->head) {
+        // Encontrar o PCB com menor tempo restante
+        queue_elem_t *it = rq->head;
+        queue_elem_t *shortest_elem = it;
+        queue_elem_t *prev = NULL, *prev_shortest = NULL;
+
+        while (it->next) {
+            if (it->next->pcb->time_ms < shortest_elem->pcb->time_ms) {
+                prev_shortest = it;
+                shortest_elem = it->next;
             }
-            it_prev = it;
             it = it->next;
         }
-        if (shortest) {
-            if (prev) prev->next = shortest->next;
-            else rq->head = shortest->next;
-            if (rq->tail == shortest) rq->tail = prev;
-            shortest->next = NULL;
 
-            *cpu_task = shortest;
+        // Remover da fila
+        if (shortest_elem == rq->head) {
+            *cpu_task = dequeue_pcb(rq);
+        } else {
+            if (prev_shortest) {
+                prev_shortest->next = shortest_elem->next;
+                if (shortest_elem == rq->tail) rq->tail = prev_shortest;
+                *cpu_task = shortest_elem->pcb;
+                free(shortest_elem);
+            }
         }
     }
 }
