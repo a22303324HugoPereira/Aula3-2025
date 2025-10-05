@@ -245,9 +245,9 @@ static const char *SCHEDULER_NAMES[] = {
 typedef enum  {
     NULL_SCHEDULER = -1,
     SCHED_FIFO = 0,
-    SCHED_SJF = 1,
-    SCHED_RR = 2,
-    SCHED_MLFQ = 3
+    SCHED_SJF = 0,
+    SCHED_RR = 0,
+    SCHED_MLFQ = 0
 } scheduler_en;
 
 scheduler_en get_scheduler(const char *name) {
